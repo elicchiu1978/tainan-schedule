@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>臺南市政府市政會議 - 雲端排程設定</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --warn: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft JhengHei", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px 16px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 18px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 6px;
+      color: #fff;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin: 0 0 20px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      color: #fff;
+      font-size: 1rem;
+      margin-bottom: 14px;
+      font-family: inherit;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .radio-group {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .radio-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .radio-btn input { width: auto; margin: 0; }
+    .preview-box {
+      background: #0f172a;
+      border: 1px dashed #475569;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .cron-code {
+      font-family: Consolas, monospace;
+      font-size: 1.05rem;
+      color: #38bdf8;
+      font-weight: bold;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      margin-bottom: 10px;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-success { background: var(--success); color: #052e16; }
+    .btn-outline { background: transparent; color: #e2e8f0; border: 1px solid var(--border); }
+    .btn-outline:hover { background: #334155; }
+    .status {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      display: none;
+    }
+    .status.ok { display: block; background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #6ee7b7; }
+    .status.err { display: block; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; }
+    .note {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .warn-box {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      color: #fcd34d;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>🏛️ 臺南市政會議 - 雲端排程設定器</h1>
+      <p class="subtitle">直接選擇台灣時間，自動換算 GitHub 排程時間（免算 UTC 時差）</p>
+
+      <div class="warn-box">
+        ⚠️ 提醒：目前 GitHub 免費雲端機房 IP 容易被 YouTube 擋機器人驗證；若需 100% 穩定錄製，仍建議讓電腦開著執行桌面 <b>一鍵監聽市政會議.bat</b>。
+      </div>
+
+      <label>排程模式</label>
+      <div class="radio-group">
+        <label class="radio-btn">
+          <input type="radio" name="mode" value="once" checked onchange="toggleMode()" />
+          <span>指定某一天（單次）</span>
+        </label>
+        <label class="radio-btn">
+          <input type="radio" name="mode" value="weekly" onchange="toggleMode()" />
+          <span>每週固定星期幾</span>
+        </label>
+      </div>
+
+      <div id="onceInputs" class="row">
+        <div>
+          <label for="dateInput">日期（台灣時間）</label>
+          <input type="date" id="dateInput" onchange="updatePreview()" />
+        </div>
+        <div>
+          <label for="timeInputOnce">時間（24 小時制）</label>
+          <input type="time" id="timeInputOnce" value="15:40" onchange="updatePreview()" />
+        </div>
+      </div>
+
+      <div id="weeklyInputs" class="row" style="display: none;">
+        <div>
+          <label for="weekdayInput">每週星期幾</label>
+          <select id="weekdayInput" onchange="updatePreview()">
+            <option value="2" selected>星期二</option>
+            <option value="3">星期三</option>
+            <option value="4">星期四</option>
+            <option value="5">星期五</option>
+            <option value="1">星期一</option>
+            <option value="6">星期六</option>
+            <option value="0">星期日</option>
+          </select>
+        </div>
+        <div>
+          <label for="timeInputWeekly">時間（24 小時制）</label>
+          <input type="time" id="timeInputWeekly" value="15:40" onchange="updatePreview()" />
+        </div>
+      </div>
+
+      <div class="preview-box">
+        <div style="font-size:0.88rem; color:#94a3b8; margin-bottom:4px;">自動換算後的 GitHub 排程語法：</div>
+        <div class="cron-code" id="cronPreview">- cron: '40 7 * * 2'</div>
+        <div class="note" id="twSummary">台灣時間：...</div>
+      </div>
+
+      <button class="btn btn-outline" onclick="copyAndOpenGitHub()">📋 複製語法並前往 GitHub 貼上修改</button>
+    </div>
+
+    <div class="card">
+      <h1 style="font-size:1.15rem;">⚡ 進階：一鍵直接更新 GitHub（免手動貼上）</h1>
+      <p class="subtitle" style="margin-bottom:12px;">貼入一次 GitHub Token（僅存在您本機瀏覽器），以後選好時間按一顆鈕就自動存到 GitHub。</p>
+
+      <label for="ghToken">GitHub Personal Access Token（選填，需勾選 repo 與 workflow 權限）</label>
+      <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" oninput="saveToken()" />
+
+      <button class="btn btn-primary" onclick="updateGitHubDirect()">💾 直接儲存排程到 GitHub</button>
+      <button class="btn btn-success" onclick="triggerNow()">▶️ 立即手動啟動一次雲端錄製</button>
+
+      <div id="statusBox" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const REPO = "elicchiu1978/tainan-meeting-recorder";
+    const WORKFLOW_PATH = ".github/workflows/record_meeting.yml";
+
+    // Init default date to next Tuesday
+    (function init() {
+      const saved = localStorage.getItem("tainan_gh_token");
+      if (saved) document.getElementById("ghToken").value = saved;
+
+      const d = new Date();
+      const diff = (2 - d.getDay() + 7) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+      document.getElementById("dateInput").value = d.toISOString().slice(0, 10);
+      updatePreview();
+    })();
+
+    function saveToken() {
+      localStorage.setItem("tainan_gh_token", document.getElementById("ghToken").value.trim());
+    }
+
+    function toggleMode() {
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      document.getElementById("onceInputs").style.display = mode === "once" ? "grid" : "none";
+      document.getElementById("weeklyInputs").style.display = mode === "weekly" ? "grid" : "none";
+      updatePreview();
+    }
+
+    function getCronExpression() {
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      if (mode === "once") {
+        const dateStr = document.getElementById("dateInput").value;
+        const timeStr = document.getElementById("timeInputOnce").value || "15:40";
+        if (!dateStr) return { cron: "40 7 * * 2", desc: "請選擇日期" };
+        const [y, m, d] = dateStr.split("-").map(Number);
+        const [hh, mm] = timeStr.split(":").map(Number);
+        // Convert Taiwan UTC+8 to UTC
+        const utcDate = new Date(Date.UTC(y, m - 1, d, hh - 8, mm, 0));
+        const cron = `${utcDate.getUTCMinutes()} ${utcDate.getUTCHours()} ${utcDate.getUTCDate()} ${utcDate.getUTCMonth() + 1} *`;
+        return {
+          cron,
+          desc: `台灣時間 ${dateStr} ${timeStr}（對應 UTC ${utcDate.getUTCMonth() + 1}/${utcDate.getUTCDate()} ${String(utcDate.getUTCHours()).padStart(2,'0')}:${String(utcDate.getUTCMinutes()).padStart(2,'0')}）`
+        };
+      } else {
+        let wd = Number(document.getElementById("weekdayInput").value);
+        const timeStr = document.getElementById("timeInputWeekly").value || "15:40";
+        const [hh, mm] = timeStr.split(":").map(Number);
+        let utcH = hh - 8;
+        if (utcH < 0) {
+          utcH += 24;
+          wd = (wd + 6) % 7;
+        }
+        const names = ["日", "一", "二", "三", "四", "五", "六"];
+        const cron = `${mm} ${utcH} * * ${wd}`;
+        return {
+          cron,
+          desc: `每週${names[Number(document.getElementById("weekdayInput").value)]} 台灣時間 ${timeStr}（對應 UTC 週${names[wd]} ${String(utcH).padStart(2,'0')}:${String(mm).padStart(2,'0')}）`
+        };
+      }
+    }
+
+    function updatePreview() {
+      const info = getCronExpression();
+      document.getElementById("cronPreview").textContent = `- cron: '${info.cron}'`;
+      document.getElementById("twSummary").textContent = info.desc;
+    }
+
+    function showStatus(msg, ok) {
+      const box = document.getElementById("statusBox");
+      box.textContent = msg;
+      box.className = "status " + (ok ? "ok" : "err");
+    }
+
+    async function copyAndOpenGitHub() {
+      const info = getCronExpression();
+      const line = `    - cron: '${info.cron}'`;
+      try {
+        await navigator.clipboard.writeText(line);
+        alert("已複製排程語法：\n" + line + "\n\n即將為您打開 GitHub 編輯頁面，請點右上角鉛筆圖示 ✏️，覆蓋第 6 行的 cron 並按 Commit changes 即可！");
+      } catch {
+        alert("請手動複製：\n" + line);
+      }
+      window.open(`https://github.com/${REPO}/blob/main/${WORKFLOW_PATH}`, "_blank");
+    }
+
+    async function updateGitHubDirect() {
+      const token = document.getElementById("ghToken").value.trim();
+      if (!token) {
+        showStatus("請先貼入 GitHub Personal Access Token，或使用上方的「複製語法並前往 GitHub 貼上修改」。", false);
+        return;
+      }
+      const info = getCronExpression();
+      showStatus("正在連線 GitHub 更新排程...", true);
+      try {
+        const apiUrl = `https://api.github.com/repos/${REPO}/contents/${WORKFLOW_PATH}`;
+        const getResp = await fetch(apiUrl, {
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" }
+        });
+        if (!getResp.ok) throw new Error("無法讀取檔案，請確認 Token 權限是否包含 repo 與 workflow。");
+        const data = await getResp.json();
+        const contentText = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ""))));
+        const updated = contentText.replace(/-\s*cron:\s*'[^']*'/, `- cron: '${info.cron}'`);
+        const encoded = btoa(unescape(encodeURIComponent(updated)));
+
+        const putResp = await fetch(apiUrl, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github+json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: `Update schedule to ${info.cron} (Taiwan ${info.desc})`,
+            content: encoded,
+            sha: data.sha,
+            branch: "main"
+          })
+        });
+        if (!putResp.ok) {
+          const err = await putResp.json();
+          throw new Error(err.message || "更新失敗");
+        }
+        showStatus(`✅ 已成功更新 GitHub 排程為：${info.desc}`, true);
+      } catch (e) {
+        showStatus("❌ 更新失敗：" + e.message, false);
+      }
+    }
+
+    async function triggerNow() {
+      const token = document.getElementById("ghToken").value.trim();
+      if (!token) {
+        window.open(`https://github.com/${REPO}/actions/workflows/record_meeting.yml`, "_blank");
+        return;
+      }
+      showStatus("正在觸發雲端錄製...", true);
+      try {
+        const resp = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/record_meeting.yml/dispatches`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github+json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ ref: "main", inputs: { video_url: "", delay_minutes: "0" } })
+        });
+        if (!resp.ok) throw new Error("觸發失敗，請確認 Token 權限。");
+        showStatus("✅ 已成功觸發雲端執行！可到 GitHub Actions 查看進度。", true);
+      } catch (e) {
+        showStatus("❌ 觸發失敗：" + e.message, false);
+      }
+    }
+  </script>
+</body>
+</html>
